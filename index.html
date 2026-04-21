@@ -1,568 +1,350 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Folder Uploader</title>
-    <!-- Tailwind CSS para los estilos -->
+    <title>GitHub Repo Manager | Made Easy</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Iconos de Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* Animación simple de carga */
-        .loader {
-            border-top-color: #3498db;
-            -webkit-animation: spinner 1.5s linear infinite;
-            animation: spinner 1.5s linear infinite;
-        }
-
-        @keyframes spinner {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* Ocultar barra de desplazamiento en los logs */
-        #logArea::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        #logArea::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1;
-            border-radius: 10px;
-        }
-
-        /* Estilos para el details/summary de webhooks */
-        details>summary {
-            list-style: none;
-        }
-
-        details>summary::-webkit-details-marker {
-            display: none;
-        }
+        .loader { border-top-color: #3b82f6; animation: spinner 1s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .repo-item:hover { background-color: #f8fafc; }
     </style>
 </head>
+<body class="bg-slate-50 min-h-screen font-sans text-slate-900">
 
-<body class="bg-gray-50 min-h-screen text-gray-800 font-sans">
-
-    <div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-
+    <div class="max-w-3xl mx-auto py-12 px-4">
+        <!-- Header -->
         <header class="text-center mb-10">
-            <i data-lucide="github" class="w-16 h-16 mx-auto text-gray-900 mb-4"></i>
-            <h1 class="text-3xl font-bold text-gray-900">GitHub Folder Uploader</h1>
-            <p class="text-gray-500 mt-2">Sube carpetas enteras a tus repositorios directamente desde el navegador</p>
+            <div class="inline-flex items-center justify-center p-3 bg-black text-white rounded-2xl mb-4 shadow-lg">
+                <i data-lucide="github" class="w-10 h-10"></i>
+            </div>
+            <h1 class="text-4xl font-extrabold tracking-tight">GitHub Repo Manager</h1>
+            <p class="text-slate-500 mt-2 text-lg">"Now you too can use GitHub" — Fast, Easy, Automatic.</p>
         </header>
 
-        <!-- PASO 1: AUTENTICACIÓN -->
-        <div id="step1" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 transition-all">
-            <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <span
-                    class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm">1</span>
-                Credenciales de Acceso
-            </h2>
+        <!-- Step 1: Auth -->
+        <section id="step1" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mb-6 transition-all">
+            <div class="flex items-center mb-6">
+                <span class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white font-bold mr-3 text-sm">1</span>
+                <h2 class="text-xl font-bold">Access Credentials</h2>
+            </div>
+            
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">GitHub Personal Access Token
-                        (PAT)</label>
-                    <input type="password" id="initialToken" placeholder="ghp_xxxxxxxxxxxxxxxxx"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors">
-                    <p class="text-xs text-gray-500 mt-1">Necesita permisos de 'repo' para leer y escribir. Tus datos no
-                        se guardan en ningún servidor.</p>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">GitHub Personal Access Token</label>
+                    <input type="password" id="token" placeholder="ghp_..." class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all">
                 </div>
 
-                <!-- Configuración de Webhooks -->
-                <details class="group border border-gray-200 rounded-lg p-3 bg-gray-50">
-                    <summary class="text-sm font-medium text-gray-700 cursor-pointer flex items-center justify-between">
-                        <span class="flex items-center"><i data-lucide="bell" class="w-4 h-4 mr-2 text-gray-500"></i>
-                            Notificaciones a Discord / Slack (Opcional)</span>
-                        <i data-lucide="chevron-down"
-                            class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
+                <details class="group bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                    <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-100 transition-colors">
+                        <span class="text-sm font-medium flex items-center">
+                            <i data-lucide="bell" class="w-4 h-4 mr-2 text-blue-500"></i> Webhooks (Discord/Slack)
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 group-open:rotate-180 transition-transform"></i>
                     </summary>
-                    <div class="mt-4 space-y-3 pt-3 border-t border-gray-200">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">Webhook de Discord</label>
-                            <input type="url" id="discordWebhook" placeholder="https://discord.com/api/webhooks/..."
-                                class="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">Webhook de Slack</label>
-                            <input type="url" id="slackWebhook" placeholder="https://hooks.slack.com/services/..."
-                                class="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white">
-                        </div>
+                    <div class="p-4 pt-0 space-y-3">
+                        <input type="url" id="discordWebhook" placeholder="Discord Webhook URL" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white outline-none">
+                        <input type="url" id="slackWebhook" placeholder="Slack Webhook URL" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white outline-none">
                     </div>
                 </details>
 
-                <button id="btnConnect" onclick="authenticate()"
-                    class="w-full bg-gray-900 hover:bg-gray-800 text-white font-medium py-2 px-4 rounded-lg flex justify-center items-center transition-colors">
-                    <i data-lucide="log-in" class="w-5 h-5 mr-2"></i> Conectar
+                <button id="btnConnect" onclick="authenticate()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-md transition-all flex items-center justify-center">
+                    Connect to GitHub
                 </button>
             </div>
-            <div id="authError" class="hidden mt-3 text-sm text-red-600 bg-red-50 p-3 rounded-md"></div>
-        </div>
+        </section>
 
-        <!-- PASO 2: SELECCIÓN DE REPOSITORIO (Oculto al inicio) -->
-        <div id="step2"
-            class="hidden opacity-50 pointer-events-none bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 transition-all duration-300">
-            <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <span
-                    class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm">2</span>
-                Seleccionar o Crear Repositorio
-            </h2>
+        <!-- Step 2: Repo Selection (Enhanced with Search) -->
+        <section id="step2" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mb-6 opacity-0 transition-all duration-500">
+            <div class="flex items-center mb-6">
+                <span class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white font-bold mr-3 text-sm">2</span>
+                <h2 class="text-xl font-bold">Target Repository</h2>
+            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Seleccionar existente -->
-                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Repositorios Existentes</label>
-                    <select id="repoSelect"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                        <option value="">Cargando repositorios...</option>
-                    </select>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Search/List -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2 text-center md:text-left">Select Existing</label>
+                    <div class="relative mb-2">
+                        <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-slate-400"></i>
+                        <input type="text" id="repoSearch" oninput="filterRepos()" placeholder="Search your repos..." class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div id="repoList" class="h-40 overflow-y-auto border border-slate-100 rounded-lg custom-scrollbar">
+                        <!-- Repos populated here -->
+                    </div>
                 </div>
 
-                <!-- Crear nuevo -->
-                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">O crear uno nuevo</label>
-                    <div class="flex flex-col space-y-2">
-                        <input type="text" id="newRepoName" placeholder="nombre-del-repo"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                        <label class="flex items-center text-sm text-gray-600">
-                            <input type="checkbox" id="isPrivate" class="mr-2 rounded text-blue-600" checked>
-                            Repositorio Privado
+                <!-- Create New -->
+                <div class="flex flex-col">
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Or Create New</label>
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex-1">
+                        <input type="text" id="newRepoName" placeholder="project-name" class="w-full px-3 py-2 border border-slate-200 rounded-lg mb-3 outline-none">
+                        <label class="flex items-center text-sm mb-3 cursor-pointer">
+                            <input type="checkbox" id="isPrivate" class="mr-2" checked> Private Repository
                         </label>
-                        <button onclick="createRepo()"
-                            class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm">
-                            Crear Repositorio
-                        </button>
+                        <button onclick="createRepo()" class="w-full bg-slate-900 text-white py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">Create & Select</button>
                     </div>
                 </div>
             </div>
-            <div id="repoStatus" class="hidden mt-3 text-sm p-3 rounded-md"></div>
-        </div>
+        </section>
 
-        <!-- PASO 3: CARGA DE CARPETA (Oculto al inicio) -->
-        <div id="step3"
-            class="hidden opacity-50 pointer-events-none bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 transition-all duration-300">
-            <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <span
-                    class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm">3</span>
-                Subir Carpeta
-            </h2>
+        <!-- Step 3: Deployment -->
+        <section id="step3" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mb-6 opacity-0 transition-all duration-500">
+            <div class="flex items-center mb-6">
+                <span class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white font-bold mr-3 text-sm">3</span>
+                <h2 class="text-xl font-bold">Deploy Folder</h2>
+            </div>
 
-            <div
-                class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors bg-gray-50">
-                <i data-lucide="folder-up" class="w-12 h-12 mx-auto text-gray-400 mb-3"></i>
-                <h3 class="text-lg font-medium text-gray-900 mb-1">Selecciona una carpeta para subir</h3>
-                <p class="text-sm text-gray-500 mb-4">Se mantendrá la estructura de archivos. Si incluyes un
-                    <code>credentials.json</code>, se usarán sus permisos.
-                </p>
-
-                <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden"
-                    onchange="handleFolderSelect(event)">
-                <label for="folderInput"
-                    class="cursor-pointer inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gray-900 hover:bg-gray-800 transition-colors">
-                    Explorar Carpeta
-                </label>
-
-                <div id="selectedFolderInfo"
-                    class="hidden mt-4 text-sm text-gray-700 font-medium bg-blue-50 py-2 rounded-md border border-blue-100">
-                    <span id="fileCount">0</span> archivos listos para subir.
+            <div class="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center hover:bg-slate-50 transition-colors relative">
+                <input type="file" id="folderInput" webkitdirectory directory multiple class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleFiles(event)">
+                <div id="dropZoneContent">
+                    <i data-lucide="cloud-upload" class="w-12 h-12 mx-auto text-blue-500 mb-4"></i>
+                    <h3 class="text-lg font-bold">Click or Drag Folder Here</h3>
+                    <p class="text-slate-400 text-sm mt-1">Files inside will be uploaded to the root.</p>
+                </div>
+                <div id="fileInfo" class="hidden">
+                    <p class="text-blue-600 font-bold text-lg"><span id="fileCount">0</span> Files Ready</p>
+                    <p class="text-slate-500 text-sm">Target: <span id="targetDisplay" class="font-mono bg-slate-100 px-1">...</span></p>
                 </div>
             </div>
 
-            <div class="mt-6">
-                <button id="btnUpload" onclick="startUpload()" disabled
-                    class="w-full bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg flex justify-center items-center transition-colors">
-                    <i data-lucide="cloud-upload" class="w-5 h-5 mr-2"></i> Comenzar Subida
-                </button>
+            <button id="btnUpload" onclick="startUpload()" disabled class="w-full mt-6 bg-green-600 disabled:bg-slate-200 disabled:cursor-not-allowed hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center transition-all">
+                Launch Deployment
+            </button>
+        </section>
+
+        <!-- Logs & Results -->
+        <div id="results" class="hidden space-y-4">
+            <div id="console" class="bg-slate-900 rounded-xl p-4 font-mono text-xs text-blue-300 h-48 overflow-y-auto custom-scrollbar">
+                <!-- Logs here -->
+            </div>
+            
+            <div id="successPanel" class="hidden bg-green-50 border border-green-200 p-6 rounded-2xl">
+                <div class="flex items-center text-green-700 font-bold mb-4">
+                    <i data-lucide="party-popper" class="mr-2"></i> Deployment Successful!
+                </div>
+                <div class="grid grid-cols-1 gap-3">
+                    <a id="repoUrl" target="_blank" class="flex items-center justify-between bg-white p-3 rounded-lg border border-green-100 hover:shadow-sm">
+                        <span class="text-sm font-medium">Repository URL</span>
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                    </a>
+                    <a id="pagesUrl" target="_blank" class="flex items-center justify-between bg-white p-3 rounded-lg border border-green-100 hover:shadow-sm">
+                        <span class="text-sm font-medium">GitHub Pages (Live)</span>
+                        <i data-lucide="globe" class="w-4 h-4 text-blue-500"></i>
+                    </a>
+                </div>
+                <p class="text-xs text-green-600 mt-4 text-center italic">Note: GitHub Pages might take a minute to build and go live.</p>
             </div>
         </div>
-
-        <!-- LOGS DE SUBIDA -->
-        <div id="logSection" class="hidden bg-gray-900 rounded-xl shadow-sm overflow-hidden flex flex-col h-64">
-            <div class="bg-gray-800 px-4 py-2 flex justify-between items-center border-b border-gray-700">
-                <span class="text-gray-300 text-sm font-mono flex items-center">
-                    <i data-lucide="terminal" class="w-4 h-4 mr-2"></i> Registro de Actividad
-                </span>
-                <span id="progressText" class="text-green-400 text-sm font-mono">0%</span>
-            </div>
-            <div id="logArea" class="p-4 overflow-y-auto flex-1 font-mono text-xs text-gray-300 space-y-1">
-                <!-- Logs aparecerán aquí -->
-            </div>
-        </div>
-
     </div>
 
     <script>
-        // Inicializar iconos
+        let config = { token: '', user: '', repos: [], selectedRepo: '', files: [] };
+        const API = "https://api.github.com";
+
         lucide.createIcons();
 
-        // Variables de estado
-        let globalToken = '';
-        let uploadToken = ''; // Este puede cambiar si encontramos credentials.json
-        let username = '';
-        let selectedFiles = [];
-        let finalRepoName = '';
-
-        // Constantes de API
-        const API_BASE = 'https://api.github.com';
-
-        // Recuperar de LocalStorage al cargar la página
-        window.onload = () => {
-            const savedPat = localStorage.getItem('github_pat');
-            if (savedPat) document.getElementById('initialToken').value = savedPat;
-
-            const savedDiscord = localStorage.getItem('discord_webhook');
-            if (savedDiscord) document.getElementById('discordWebhook').value = savedDiscord;
-
-            const savedSlack = localStorage.getItem('slack_webhook');
-            if (savedSlack) document.getElementById('slackWebhook').value = savedSlack;
+        // Helpers
+        const log = (msg, type = 'info') => {
+            const consoleEl = document.getElementById('console');
+            const entry = document.createElement('div');
+            const colors = { info: 'text-slate-300', success: 'text-green-400', error: 'text-red-400', warn: 'text-yellow-300' };
+            entry.className = `mb-1 ${colors[type]}`;
+            entry.innerHTML = `<span class="opacity-50">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+            consoleEl.appendChild(entry);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
         };
 
-        // Función para enviar notificaciones a Webhooks
-        async function sendNotification(message) {
-            const discordUrl = document.getElementById('discordWebhook').value.trim();
-            const slackUrl = document.getElementById('slackWebhook').value.trim();
+        const notify = async (message) => {
+            const discord = document.getElementById('discordWebhook').value;
+            const slack = document.getElementById('slackWebhook').value;
+            if(discord) await fetch(discord, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ content: message })}).catch(()=>{});
+            if(slack) await fetch(slack, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ text: message })}).catch(()=>{});
+        };
 
-            if (discordUrl) {
-                try {
-                    await fetch(discordUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ content: message })
-                    });
-                } catch (e) {
-                    console.error('Error enviando a Discord:', e);
-                }
-            }
-
-            if (slackUrl) {
-                try {
-                    await fetch(slackUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: message })
-                    });
-                } catch (e) {
-                    console.error('Error enviando a Slack:', e);
-                }
-            }
-        }
-
-        // Funciones de UI
-        function showLog(message, type = 'info') {
-            const logArea = document.getElementById('logArea');
-            const div = document.createElement('div');
-            const time = new Date().toLocaleTimeString();
-
-            let color = 'text-gray-300';
-            if (type === 'error') color = 'text-red-400';
-            if (type === 'success') color = 'text-green-400';
-            if (type === 'warn') color = 'text-yellow-400';
-
-            div.className = color;
-            div.innerHTML = `<span class="text-gray-500">[${time}]</span> ${message}`;
-            logArea.appendChild(div);
-            logArea.scrollTop = logArea.scrollHeight;
-        }
-
-        function toggleStep(stepId, enable) {
-            const el = document.getElementById(stepId);
-            if (enable) {
-                el.classList.remove('opacity-50', 'pointer-events-none');
-            } else {
-                el.classList.add('opacity-50', 'pointer-events-none');
-            }
-        }
-
-        // Paso 1: Autenticación
+        // Step 1: Auth
         async function authenticate() {
-            const tokenInput = document.getElementById('initialToken').value.trim();
-            const errorDiv = document.getElementById('authError');
-            const btn = document.getElementById('btnConnect');
-
-            if (!tokenInput) {
-                errorDiv.textContent = 'Por favor, ingresa un token válido.';
-                errorDiv.classList.remove('hidden');
-                return;
-            }
+            const token = document.getElementById('token').value.trim();
+            if(!token) return;
 
             try {
-                btn.innerHTML = '<div class="loader ease-linear rounded-full border-2 border-t-2 border-white h-5 w-5 mr-2"></div> Conectando...';
-                btn.disabled = true;
-                errorDiv.classList.add('hidden');
+                const res = await fetch(`${API}/user`, { headers: { Authorization: `token ${token}` }});
+                if(!res.ok) throw new Error("Invalid Token");
+                const data = await res.json();
+                config.user = data.login;
+                config.token = token;
 
-                // Validar token y obtener usuario
-                const response = await fetch(`${API_BASE}/user`, {
-                    headers: { 'Authorization': `token ${tokenInput}` }
-                });
-
-                if (!response.ok) throw new Error('Token inválido o sin permisos');
-
-                const data = await response.json();
-                username = data.login;
-                globalToken = tokenInput;
-                uploadToken = tokenInput; // Por defecto el token de subida es el mismo
-
-                // Guardar datos en LocalStorage
-                localStorage.setItem('github_pat', tokenInput);
-                localStorage.setItem('discord_webhook', document.getElementById('discordWebhook').value.trim());
-                localStorage.setItem('slack_webhook', document.getElementById('slackWebhook').value.trim());
-
-                // Mostrar paso 2
-                document.getElementById('step2').classList.remove('hidden');
-                setTimeout(() => toggleStep('step2', true), 100);
-
-                btn.innerHTML = `<i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Conectado como ${username}`;
-                btn.classList.replace('bg-gray-900', 'bg-green-600');
-                btn.classList.replace('hover:bg-gray-800', 'hover:bg-green-700');
-                lucide.createIcons();
-
-                await loadRepositories();
-
-            } catch (error) {
-                errorDiv.textContent = error.message;
-                errorDiv.classList.remove('hidden');
-                btn.innerHTML = '<i data-lucide="log-in" class="w-5 h-5 mr-2"></i> Conectar';
-                btn.disabled = false;
-                lucide.createIcons();
+                log(`Authenticated as ${config.user}`, 'success');
+                
+                // Transition UI
+                document.getElementById('step1').classList.add('opacity-50', 'pointer-events-none');
+                const step2 = document.getElementById('step2');
+                step2.classList.remove('hidden');
+                setTimeout(() => step2.classList.replace('opacity-0', 'opacity-100'), 10);
+                
+                loadRepos();
+            } catch (e) {
+                log(e.message, 'error');
             }
         }
 
-        // Paso 2: Cargar y Crear Repositorios
-        async function loadRepositories() {
-            const select = document.getElementById('repoSelect');
-            try {
-                const response = await fetch(`${API_BASE}/user/repos?per_page=100&sort=updated`, {
-                    headers: { 'Authorization': `token ${globalToken}` }
-                });
-                const repos = await response.json();
+        // Step 2: Repos
+        async function loadRepos() {
+            const res = await fetch(`${API}/user/repos?per_page=100&sort=updated`, { headers: { Authorization: `token ${config.token}` }});
+            config.repos = await res.json();
+            renderRepos(config.repos);
+        }
 
-                select.innerHTML = '<option value="">Selecciona un repositorio...</option>';
-                repos.forEach(repo => {
-                    const option = document.createElement('option');
-                    option.value = repo.name;
-                    option.textContent = `${repo.name} ${repo.private ? '(Privado)' : '(Público)'}`;
-                    select.appendChild(option);
-                });
+        function renderRepos(repos) {
+            const list = document.getElementById('repoList');
+            list.innerHTML = repos.map(r => `
+                <div onclick="selectRepo('${r.name}')" class="repo-item p-3 border-b border-slate-50 cursor-pointer transition-colors flex items-center justify-between">
+                    <span class="text-sm font-medium ${config.selectedRepo === r.name ? 'text-blue-600' : ''}">${r.name}</span>
+                    <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded ${r.private ? 'bg-slate-200' : 'bg-green-100 text-green-700'}">${r.private ? 'Private' : 'Public'}</span>
+                </div>
+            `).join('');
+        }
 
-                select.addEventListener('change', (e) => {
-                    if (e.target.value) {
-                        finalRepoName = e.target.value;
-                        document.getElementById('step3').classList.remove('hidden');
-                        setTimeout(() => toggleStep('step3', true), 100);
-                    }
-                });
-            } catch (error) {
-                select.innerHTML = '<option value="">Error cargando repositorios</option>';
-            }
+        function filterRepos() {
+            const term = document.getElementById('repoSearch').value.toLowerCase();
+            const filtered = config.repos.filter(r => r.name.toLowerCase().includes(term));
+            renderRepos(filtered);
+        }
+
+        function selectRepo(name) {
+            config.selectedRepo = name;
+            log(`Selected repository: ${name}`);
+            renderRepos(config.repos);
+            
+            const step3 = document.getElementById('step3');
+            step3.classList.remove('hidden');
+            document.getElementById('targetDisplay').textContent = name;
+            setTimeout(() => step3.classList.replace('opacity-0', 'opacity-100'), 10);
+            lucide.createIcons();
         }
 
         async function createRepo() {
-            const nameInput = document.getElementById('newRepoName').value.trim();
+            const name = document.getElementById('newRepoName').value.trim();
             const isPrivate = document.getElementById('isPrivate').checked;
-            const statusDiv = document.getElementById('repoStatus');
-
-            if (!nameInput) return;
-
-            statusDiv.className = 'mt-3 text-sm p-3 rounded-md bg-blue-50 text-blue-700 block';
-            statusDiv.textContent = 'Creando repositorio...';
+            if(!name) return;
 
             try {
-                const response = await fetch(`${API_BASE}/user/repos`, {
+                const res = await fetch(`${API}/user/repos`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `token ${globalToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        name: nameInput,
-                        private: isPrivate,
-                        auto_init: true // Inicializa con README para crear la rama principal
-                    })
+                    headers: { Authorization: `token ${config.token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, private: isPrivate, auto_init: true })
                 });
-
-                const data = await response.json();
-
-                if (!response.ok) throw new Error(data.message || 'Error creando el repositorio');
-
-                statusDiv.className = 'mt-3 text-sm p-3 rounded-md bg-green-50 text-green-700 block';
-                statusDiv.textContent = `Repositorio '${data.name}' creado con éxito.`;
-
-                finalRepoName = data.name;
-
-                // Actualizar lista y seleccionar
-                await loadRepositories();
-                document.getElementById('repoSelect').value = data.name;
-
-                // Mostrar paso 3
-                document.getElementById('step3').classList.remove('hidden');
-                setTimeout(() => toggleStep('step3', true), 100);
-
-                // Enviar notificación de creación de repo
-                sendNotification(`📁 El usuario **${username}** ha creado el repositorio **${data.name}** (${isPrivate ? 'Privado' : 'Público'}).\nURL: https://github.com/${username}/${data.name}`);
-
-            } catch (error) {
-                statusDiv.className = 'mt-3 text-sm p-3 rounded-md bg-red-50 text-red-700 block';
-                statusDiv.textContent = error.message;
+                const data = await res.json();
+                if(!res.ok) throw new Error(data.message);
+                
+                log(`Created repository: ${name}`, 'success');
+                notify(`📁 New Repo Created: **${name}** by ${config.user}`);
+                await loadRepos();
+                selectRepo(name);
+            } catch (e) {
+                log(e.message, 'error');
             }
         }
 
-        // Paso 3: Manejo de Archivos
-        async function handleFolderSelect(event) {
-            const files = event.target.files;
-            if (files.length === 0) return;
-
-            selectedFiles = Array.from(files);
-
-            // Requerimiento especial: Buscar credentials.json dentro de la carpeta seleccionada
-            const credFileIndex = selectedFiles.findIndex(f => f.name === 'credentials.json');
-
-            if (credFileIndex !== -1) {
-                const credFile = selectedFiles[credFileIndex];
-                try {
-                    const text = await credFile.text();
-                    const json = JSON.parse(text);
-                    if (json.token || json.PAT || json.github_token) {
-                        uploadToken = json.token || json.PAT || json.github_token;
-                        document.getElementById('selectedFolderInfo').innerHTML =
-                            `¡Archivo <b>credentials.json</b> detectado! Se usarán sus permisos.<br><span class="text-xs text-gray-500">(${selectedFiles.length - 1} archivos para subir)</span>`;
-                    }
-                    // Removemos credentials.json de la lista para no subirlo (por seguridad)
-                    selectedFiles.splice(credFileIndex, 1);
-                } catch (e) {
-                    console.error("No se pudo parsear el credentials.json", e);
-                }
-            } else {
-                // Restablecer al token original si se seleccionó una carpeta sin credenciales
-                uploadToken = globalToken;
-                document.getElementById('selectedFolderInfo').innerHTML =
-                    `<span id="fileCount">${selectedFiles.length}</span> archivos listos para subir.`;
-            }
-
-            document.getElementById('selectedFolderInfo').classList.remove('hidden');
+        // Step 3: Files & Upload
+        function handleFiles(e) {
+            config.files = Array.from(e.target.files);
+            document.getElementById('dropZoneContent').classList.add('hidden');
+            document.getElementById('fileInfo').classList.remove('hidden');
+            document.getElementById('fileCount').textContent = config.files.length;
             document.getElementById('btnUpload').disabled = false;
         }
 
-        // Utilidad: Convertir File a Base64
-        function fileToBase64(file) {
+        async function startUpload() {
+            document.getElementById('results').classList.remove('hidden');
+            document.getElementById('btnUpload').disabled = true;
+            document.getElementById('btnUpload').innerHTML = `<div class="loader w-5 h-5 rounded-full border-2 border-t-transparent mr-2"></div> Uploading...`;
+
+            let count = 0;
+            for (const file of config.files) {
+                const pathParts = file.webkitRelativePath.split('/');
+                pathParts.shift();
+                const repoPath = pathParts.join('/');
+                if(!repoPath) continue;
+
+                try {
+                    const base64 = await toBase64(file);
+                    const res = await uploadFile(repoPath, base64);
+                    if(res) {
+                        count++;
+                        log(`Uploaded: ${repoPath}`, 'success');
+                    }
+                } catch (e) {
+                    log(`Error: ${repoPath} - ${e.message}`, 'error');
+                }
+            }
+
+            log(`Deployment Finished: ${count}/${config.files.length} files.`, 'success');
+            
+            // Try to enable GH Pages
+            await enablePages();
+
+            // Show Success Panel
+            document.getElementById('successPanel').classList.remove('hidden');
+            document.getElementById('repoUrl').href = `https://github.com/${config.user}/${config.selectedRepo}`;
+            document.getElementById('pagesUrl').href = `https://${config.user}.github.io/${config.selectedRepo}/`;
+            
+            notify(`🚀 Deployment Finished! **${config.selectedRepo}** is now updated with ${count} files.\nRepo: https://github.com/${config.user}/${config.selectedRepo}`);
+            
+            document.getElementById('btnUpload').innerHTML = `<i data-lucide="check" class="mr-2"></i> Deployment Complete`;
+            lucide.createIcons();
+        }
+
+        async function uploadFile(path, content) {
+            // First check if file exists to get SHA
+            const getRes = await fetch(`${API}/repos/${config.user}/${config.selectedRepo}/contents/${path}`, {
+                headers: { Authorization: `token ${config.token}` }
+            });
+            let sha = null;
+            if(getRes.ok) {
+                const data = await getRes.json();
+                sha = data.sha;
+            }
+
+            const putRes = await fetch(`${API}/repos/${config.user}/${config.selectedRepo}/contents/${path}`, {
+                method: 'PUT',
+                headers: { Authorization: `token ${config.token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: "Deploy via Repo Manager",
+                    content: content,
+                    sha: sha
+                })
+            });
+            return putRes.ok;
+        }
+
+        async function enablePages() {
+            log("Attempting to enable GitHub Pages...");
+            try {
+                const res = await fetch(`${API}/repos/${config.user}/${config.selectedRepo}/pages`, {
+                    method: 'POST',
+                    headers: { Authorization: `token ${config.token}`, 'Accept': 'application/vnd.github+json' },
+                    body: JSON.stringify({ source: { branch: 'main', path: '/' } })
+                });
+                if(res.ok) log("GitHub Pages enabled successfully!", 'success');
+                else log("Pages already enabled or requires manual setup.", 'warn');
+            } catch (e) {
+                log("Could not auto-enable Pages.", 'warn');
+            }
+        }
+
+        function toBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
                 reader.onload = () => resolve(reader.result.split(',')[1]);
-                reader.onerror = error => reject(error);
+                reader.onerror = e => reject(e);
             });
-        }
-
-        // Paso 4: Proceso de Subida
-        async function startUpload() {
-            if (!finalRepoName || selectedFiles.length === 0) return;
-
-            document.getElementById('logSection').classList.remove('hidden');
-            document.getElementById('btnUpload').disabled = true;
-            document.getElementById('btnUpload').innerHTML = '<div class="loader ease-linear rounded-full border-2 border-t-2 border-white h-5 w-5 mr-2"></div> Subiendo...';
-
-            toggleStep('step1', false);
-            toggleStep('step2', false);
-
-            showLog(`Iniciando carga hacia: ${username}/${finalRepoName}`, 'info');
-            showLog(`Token de subida configurado.`, 'info');
-
-            let successCount = 0;
-            let errorCount = 0;
-
-            for (let i = 0; i < selectedFiles.length; i++) {
-                const file = selectedFiles[i];
-
-                // webkitRelativePath format: "FolderName/path/to/file.ext"
-                // Queremos quitar el "FolderName/" principal para que el contenido quede en la raíz del repo
-                const pathParts = file.webkitRelativePath.split('/');
-                pathParts.shift();
-                const repoPath = pathParts.join('/');
-
-                if (!repoPath) continue; // Por si acaso hay archivos sueltos extraños
-
-                try {
-                    const base64Content = await fileToBase64(file);
-
-                    let body = {
-                        message: `Upload ${repoPath} via WebApp`,
-                        content: base64Content
-                    };
-
-                    let response = await fetch(`${API_BASE}/repos/${username}/${finalRepoName}/contents/${repoPath}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `token ${uploadToken}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(body)
-                    });
-
-                    // Si da error 422, probablemente el archivo ya existe. Necesitamos su SHA para sobreescribir.
-                    if (response.status === 422) {
-                        showLog(`[${repoPath}] ya existe, obteniendo SHA para sobreescribir...`, 'warn');
-
-                        const getResponse = await fetch(`${API_BASE}/repos/${username}/${finalRepoName}/contents/${repoPath}`, {
-                            headers: { 'Authorization': `token ${uploadToken}` }
-                        });
-
-                        if (getResponse.ok) {
-                            const currentFile = await getResponse.json();
-                            body.sha = currentFile.sha;
-
-                            // Reintentar PUT con el SHA
-                            response = await fetch(`${API_BASE}/repos/${username}/${finalRepoName}/contents/${repoPath}`, {
-                                method: 'PUT',
-                                headers: {
-                                    'Authorization': `token ${uploadToken}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify(body)
-                            });
-                        }
-                    }
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.message);
-                    }
-
-                    successCount++;
-                    showLog(`✅ Subido: ${repoPath}`, 'success');
-
-                } catch (error) {
-                    errorCount++;
-                    showLog(`❌ Error en ${repoPath}: ${error.message}`, 'error');
-                }
-
-                // Actualizar progreso
-                const percent = Math.round(((i + 1) / selectedFiles.length) * 100);
-                document.getElementById('progressText').textContent = `${percent}%`;
-            }
-
-            showLog('============================', 'info');
-            showLog(`Carga finalizada. Éxitos: ${successCount}, Errores: ${errorCount}`, successCount > 0 ? 'success' : 'error');
-
-            document.getElementById('btnUpload').innerHTML = '<i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Subida Completada';
-            lucide.createIcons();
-
-            // Enviar notificación de finalización de carga
-            sendNotification(`🚀 El usuario **${username}** ha finalizado una carga al repositorio **${finalRepoName}**.\nURL: https://github.com/${username}/${finalRepoName}\nArchivos exitosos: ${successCount}, Errores: ${errorCount}.`);
-
-            // Reactivar UI tras unos segundos por si quieren subir otra cosa
-            setTimeout(() => {
-                toggleStep('step2', true);
-                document.getElementById('btnUpload').disabled = false;
-                document.getElementById('btnUpload').innerHTML = '<i data-lucide="cloud-upload" class="w-5 h-5 mr-2"></i> Subir otra carpeta';
-                lucide.createIcons();
-            }, 3000);
         }
     </script>
 </body>
-
 </html>
