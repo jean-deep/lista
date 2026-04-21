@@ -158,7 +158,8 @@
                 <i data-lucide="folder-up" class="w-12 h-12 mx-auto text-gray-400 mb-3"></i>
                 <h3 class="text-lg font-medium text-gray-900 mb-1">Selecciona una carpeta para subir</h3>
                 <p class="text-sm text-gray-500 mb-4">Se mantendrá la estructura de archivos. Si incluyes un
-                    <code>credentials.json</code>, se usarán sus permisos.</p>
+                    <code>credentials.json</code>, se usarán sus permisos.
+                </p>
 
                 <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden"
                     onchange="handleFolderSelect(event)">
@@ -403,7 +404,7 @@
                 setTimeout(() => toggleStep('step3', true), 100);
 
                 // Enviar notificación de creación de repo
-                sendNotification(`📁 El usuario **${username}** ha creado el repositorio **${data.name}** (${isPrivate ? 'Privado' : 'Público'}).`);
+                sendNotification(`📁 El usuario **${username}** ha creado el repositorio **${data.name}** (${isPrivate ? 'Privado' : 'Público'}).\nURL: https://github.com/${username}/${data.name}`);
 
             } catch (error) {
                 statusDiv.className = 'mt-3 text-sm p-3 rounded-md bg-red-50 text-red-700 block';
@@ -551,7 +552,7 @@
             lucide.createIcons();
 
             // Enviar notificación de finalización de carga
-            sendNotification(`🚀 El usuario **${username}** ha finalizado una carga al repositorio **${finalRepoName}**. Archivos exitosos: ${successCount}, Errores: ${errorCount}.`);
+            sendNotification(`🚀 El usuario **${username}** ha finalizado una carga al repositorio **${finalRepoName}**.\nURL: https://github.com/${username}/${finalRepoName}\nArchivos exitosos: ${successCount}, Errores: ${errorCount}.`);
 
             // Reactivar UI tras unos segundos por si quieren subir otra cosa
             setTimeout(() => {
