@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Folder Uploader</title>
+    <!-- Tailwind CSS para los estilos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Iconos de Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Animación simple de carga */
+        .loader {
+            border-top-color: #3498db;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Ocultar barra de desplazamiento en los logs */
+        #logArea::-webkit-scrollbar { width: 6px; }
+        #logArea::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen text-gray-800 font-sans">
+
+    <div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+        
+        <header class="text-center mb-10">
+            <i data-lucide="github" class="w-16 h-16 mx-auto text-gray-900 mb-4"></i>
+            <h1 class="text-3xl font-bold text-gray-900">GitHub Folder Uploader</h1>
+            <p class="text-gray-500 mt-2">Sube carpetas enteras a tus repositorios directamente desde el navegador</p>
+        </header>
+
+        <!-- PASO 1: AUTENTICACIÓN -->
+        <div id="step1" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 transition-all">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <span class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm">1</span>
+                Credenciales de Acceso
+            </h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">GitHub Personal Access Token (PAT)</label>
+                    <input type="password" id="initialToken" placeholder="ghp_xxxxxxxxxxxxxxxxx" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors">
+                    <p class="text-xs text-gray-500 mt-1">Necesita permisos de 'repo' para leer y escribir. Tus datos no se guardan en ningún servidor.</p>
+                </div>
+                <button id="btnConnect" onclick="authenticate()" class="w-full bg-gray-900 hover:bg-gray-800 text-white font-medium py-2 px-4 rounded-lg flex justify-center items-center transition-colors">
+                    <i data-lucide="log-in" class="w-5 h-5 mr-2"></i> Conectar
+                </button>
+            </div>
+            <div id="authError" class="hidden mt-3 text-sm text-red-600 bg-red-50 p-3 rounded-md"></div>
+        </div>
+
+        <!-- PASO 2: SELECCIÓN DE REPOSITORIO (Oculto al inicio) -->
+        <div id="step2" class="hidden opacity-50 pointer-events-none bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 transition-all duration-300">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <span class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm">2</span>
+                Seleccionar o Crear Repositorio
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Seleccionar existente -->
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Repositorios Existentes</label>
+                    <select id="repoSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="">Cargando repositorios...</option>
+                    </select>
+                </div>
+
+                <!-- Crear nuevo -->
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">O crear uno nuevo</label>
+                    <div class="flex flex-col space-y-2">
+                        <input type="text" id="newRepoName" placeholder="nombre-del-repo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        <label class="flex items-center text-sm text-gray-600">
+                            <input type="checkbox" id="isPrivate" class="mr-2 rounded text-blue-600" checked>
+                            Repositorio Privado
+                        </label>
+                        <button onclick="createRepo()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm">
+                            Crear Repositorio
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div id="repoStatus" class="hidden mt-3 text-sm p-3 rounded-md"></div>
+        </div>
+
+        <!-- PASO 3: CARGA DE CARPETA (Oculto al inicio) -->
+        <div id="step3" class="hidden opacity-50 pointer-events-none bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 transition-all duration-300">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <span class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm">3</span>
+                Subir Carpeta
+            </h2>
+            
+            <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors bg-gray-50">
+                <i data-lucide="folder-up" class="w-12 h-12 mx-auto text-gray-400 mb-3"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-1">Selecciona una carpeta para subir</h3>
+                <p class="text-sm text-gray-500 mb-4">Se mantendrá la estructura de archivos. Si incluyes un <code>credentials.json</code>, se usarán sus permisos.</p>
+                
+                <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden" onchange="handleFolderSelect(event)">
+                <label for="folderInput" class="cursor-pointer inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gray-900 hover:bg-gray-800 transition-colors">
+                    Explorar Carpeta
+                </label>
+                
+                <div id="selectedFolderInfo" class="hidden mt-4 text-sm text-gray-700 font-medium bg-blue-50 py-2 rounded-md border border-blue-100">
+                    <span id="fileCount">0</span> archivos listos para subir.
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <button id="btnUpload" onclick="startUpload()" disabled class="w-full bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg flex justify-center items-center transition-colors">
+                    <i data-lucide="cloud-upload" class="w-5 h-5 mr-2"></i> Comenzar Subida
+                </button>
+            </div>
+        </div>
+
+        <!-- LOGS DE SUBIDA -->
+        <div id="logSection" class="hidden bg-gray-900 rounded-xl shadow-sm overflow-hidden flex flex-col h-64">
+            <div class="bg-gray-800 px-4 py-2 flex justify-between items-center border-b border-gray-700">
+                <span class="text-gray-300 text-sm font-mono flex items-center">
+                    <i data-lucide="terminal" class="w-4 h-4 mr-2"></i> Registro de Actividad
+                </span>
+                <span id="progressText" class="text-green-400 text-sm font-mono">0%</span>
+            </div>
+            <div id="logArea" class="p-4 overflow-y-auto flex-1 font-mono text-xs text-gray-300 space-y-1">
+                <!-- Logs aparecerán aquí -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Inicializar iconos
+        lucide.createIcons();
+
+        // Variables de estado
+        let globalToken = '';
+        let uploadToken = ''; // Este puede cambiar si encontramos credentials.json
+        let username = '';
+        let selectedFiles = [];
+        let finalRepoName = '';
+
+        // Constantes de API
+        const API_BASE = 'https://api.github.com';
+
+        // Funciones de UI
+        function showLog(message, type = 'info') {
+            const logArea = document.getElementById('logArea');
+            const div = document.createElement('div');
+            const time = new Date().toLocaleTimeString();
+            
+            let color = 'text-gray-300';
+            if(type === 'error') color = 'text-red-400';
+            if(type === 'success') color = 'text-green-400';
+            if(type === 'warn') color = 'text-yellow-400';
+
+            div.className = color;
+            div.innerHTML = `<span class="text-gray-500">[${time}]</span> ${message}`;
+            logArea.appendChild(div);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function toggleStep(stepId, enable) {
+            const el = document.getElementById(stepId);
+            if(enable) {
+                el.classList.remove('opacity-50', 'pointer-events-none');
+            } else {
+                el.classList.add('opacity-50', 'pointer-events-none');
+            }
+        }
+
+        // Paso 1: Autenticación
+        async function authenticate() {
+            const tokenInput = document.getElementById('initialToken').value.trim();
+            const errorDiv = document.getElementById('authError');
+            const btn = document.getElementById('btnConnect');
+
+            if (!tokenInput) {
+                errorDiv.textContent = 'Por favor, ingresa un token válido.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                btn.innerHTML = '<div class="loader ease-linear rounded-full border-2 border-t-2 border-white h-5 w-5 mr-2"></div> Conectando...';
+                btn.disabled = true;
+                errorDiv.classList.add('hidden');
+
+                // Validar token y obtener usuario
+                const response = await fetch(`${API_BASE}/user`, {
+                    headers: { 'Authorization': `token ${tokenInput}` }
+                });
+
+                if (!response.ok) throw new Error('Token inválido o sin permisos');
+
+                const data = await response.json();
+                username = data.login;
+                globalToken = tokenInput;
+                uploadToken = tokenInput; // Por defecto el token de subida es el mismo
+
+                // Mostrar paso 2
+                document.getElementById('step2').classList.remove('hidden');
+                setTimeout(() => toggleStep('step2', true), 100);
+                
+                btn.innerHTML = `<i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Conectado como ${username}`;
+                btn.classList.replace('bg-gray-900', 'bg-green-600');
+                btn.classList.replace('hover:bg-gray-800', 'hover:bg-green-700');
+                lucide.createIcons();
+
+                await loadRepositories();
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('hidden');
+                btn.innerHTML = '<i data-lucide="log-in" class="w-5 h-5 mr-2"></i> Conectar';
+                btn.disabled = false;
+                lucide.createIcons();
+            }
+        }
+
+        // Paso 2: Cargar y Crear Repositorios
+        async function loadRepositories() {
+            const select = document.getElementById('repoSelect');
+            try {
+                const response = await fetch(`${API_BASE}/user/repos?per_page=100&sort=updated`, {
+                    headers: { 'Authorization': `token ${globalToken}` }
+                });
+                const repos = await response.json();
+                
+                select.innerHTML = '<option value="">Selecciona un repositorio...</option>';
+                repos.forEach(repo => {
+                    const option = document.createElement('option');
+                    option.value = repo.name;
+                    option.textContent = `${repo.name} ${repo.private ? '(Privado)' : '(Público)'}`;
+                    select.appendChild(option);
+                });
+
+                select.addEventListener('change', (e) => {
+                    if(e.target.value) {
+                        finalRepoName = e.target.value;
+                        document.getElementById('step3').classList.remove('hidden');
+                        setTimeout(() => toggleStep('step3', true), 100);
+                    }
+                });
+            } catch (error) {
+                select.innerHTML = '<option value="">Error cargando repositorios</option>';
+            }
+        }
+
+        async function createRepo() {
+            const nameInput = document.getElementById('newRepoName').value.trim();
+            const isPrivate = document.getElementById('isPrivate').checked;
+            const statusDiv = document.getElementById('repoStatus');
+
+            if(!nameInput) return;
+
+            statusDiv.className = 'mt-3 text-sm p-3 rounded-md bg-blue-50 text-blue-700 block';
+            statusDiv.textContent = 'Creando repositorio...';
+
+            try {
+                const response = await fetch(`${API_BASE}/user/repos`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `token ${globalToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: nameInput,
+                        private: isPrivate,
+                        auto_init: true // Inicializa con README para crear la rama principal
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) throw new Error(data.message || 'Error creando el repositorio');
+
+                statusDiv.className = 'mt-3 text-sm p-3 rounded-md bg-green-50 text-green-700 block';
+                statusDiv.textContent = `Repositorio '${data.name}' creado con éxito.`;
+                
+                finalRepoName = data.name;
+                
+                // Actualizar lista y seleccionar
+                await loadRepositories();
+                document.getElementById('repoSelect').value = data.name;
+                
+                // Mostrar paso 3
+                document.getElementById('step3').classList.remove('hidden');
+                setTimeout(() => toggleStep('step3', true), 100);
+
+            } catch (error) {
+                statusDiv.className = 'mt-3 text-sm p-3 rounded-md bg-red-50 text-red-700 block';
+                statusDiv.textContent = error.message;
+            }
+        }
+
+        // Paso 3: Manejo de Archivos
+        async function handleFolderSelect(event) {
+            const files = event.target.files;
+            if(files.length === 0) return;
+
+            selectedFiles = Array.from(files);
+            
+            // Requerimiento especial: Buscar credentials.json dentro de la carpeta seleccionada
+            const credFileIndex = selectedFiles.findIndex(f => f.name === 'credentials.json');
+            
+            if (credFileIndex !== -1) {
+                const credFile = selectedFiles[credFileIndex];
+                try {
+                    const text = await credFile.text();
+                    const json = JSON.parse(text);
+                    if (json.token || json.PAT || json.github_token) {
+                        uploadToken = json.token || json.PAT || json.github_token;
+                        document.getElementById('selectedFolderInfo').innerHTML = 
+                            `¡Archivo <b>credentials.json</b> detectado! Se usarán sus permisos.<br><span class="text-xs text-gray-500">(${selectedFiles.length - 1} archivos para subir)</span>`;
+                    }
+                    // Removemos credentials.json de la lista para no subirlo (por seguridad)
+                    selectedFiles.splice(credFileIndex, 1);
+                } catch (e) {
+                    console.error("No se pudo parsear el credentials.json", e);
+                }
+            } else {
+                // Restablecer al token original si se seleccionó una carpeta sin credenciales
+                uploadToken = globalToken;
+                document.getElementById('selectedFolderInfo').innerHTML = 
+                    `<span id="fileCount">${selectedFiles.length}</span> archivos listos para subir.`;
+            }
+
+            document.getElementById('selectedFolderInfo').classList.remove('hidden');
+            document.getElementById('btnUpload').disabled = false;
+        }
+
+        // Utilidad: Convertir File a Base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // Paso 4: Proceso de Subida
+        async function startUpload() {
+            if(!finalRepoName || selectedFiles.length === 0) return;
+
+            document.getElementById('logSection').classList.remove('hidden');
+            document.getElementById('btnUpload').disabled = true;
+            document.getElementById('btnUpload').innerHTML = '<div class="loader ease-linear rounded-full border-2 border-t-2 border-white h-5 w-5 mr-2"></div> Subiendo...';
+            
+            toggleStep('step1', false);
+            toggleStep('step2', false);
+            
+            showLog(`Iniciando carga hacia: ${username}/${finalRepoName}`, 'info');
+            showLog(`Token de subida configurado.`, 'info');
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+                
+                // webkitRelativePath format: "FolderName/path/to/file.ext"
+                // Queremos quitar el "FolderName/" principal para que el contenido quede en la raíz del repo
+                const pathParts = file.webkitRelativePath.split('/');
+                pathParts.shift(); 
+                const repoPath = pathParts.join('/');
+
+                if (!repoPath) continue; // Por si acaso hay archivos sueltos extraños
+
+                try {
+                    const base64Content = await fileToBase64(file);
+                    
+                    // Paso 1: Intentar crear o actualizar el archivo
+                    // Nota: En una app de producción robusta primero pediríamos el SHA del archivo si existe para actualizarlo.
+                    // Para simplificar esta herramienta y evitar exceso de peticiones, intentamos un PUT directo.
+                    // Si el archivo ya existe, la API de GitHub devolverá error 422. En ese caso capturamos el SHA y reintentamos.
+                    
+                    let body = {
+                        message: `Upload ${repoPath} via WebApp`,
+                        content: base64Content
+                    };
+
+                    let response = await fetch(`${API_BASE}/repos/${username}/${finalRepoName}/contents/${repoPath}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${uploadToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(body)
+                    });
+
+                    // Si da error 422 (Unprocessable Entity), probablemente el archivo ya existe. Necesitamos su SHA para sobreescribir.
+                    if (response.status === 422) {
+                        showLog(`[${repoPath}] ya existe, obteniendo SHA para sobreescribir...`, 'warn');
+                        
+                        const getResponse = await fetch(`${API_BASE}/repos/${username}/${finalRepoName}/contents/${repoPath}`, {
+                            headers: { 'Authorization': `token ${uploadToken}` }
+                        });
+                        
+                        if(getResponse.ok) {
+                            const currentFile = await getResponse.json();
+                            body.sha = currentFile.sha;
+                            
+                            // Reintentar PUT con el SHA
+                            response = await fetch(`${API_BASE}/repos/${username}/${finalRepoName}/contents/${repoPath}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Authorization': `token ${uploadToken}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(body)
+                            });
+                        }
+                    }
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message);
+                    }
+
+                    successCount++;
+                    showLog(`✅ Subido: ${repoPath}`, 'success');
+
+                } catch (error) {
+                    errorCount++;
+                    showLog(`❌ Error en ${repoPath}: ${error.message}`, 'error');
+                }
+
+                // Actualizar progreso
+                const percent = Math.round(((i + 1) / selectedFiles.length) * 100);
+                document.getElementById('progressText').textContent = `${percent}%`;
+            }
+
+            showLog('============================', 'info');
+            showLog(`Carga finalizada. Éxitos: ${successCount}, Errores: ${errorCount}`, successCount > 0 ? 'success' : 'error');
+            
+            document.getElementById('btnUpload').innerHTML = '<i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Subida Completada';
+            lucide.createIcons();
+            
+            // Reactivar UI tras unos segundos por si quieren subir otra cosa
+            setTimeout(() => {
+                toggleStep('step2', true);
+                document.getElementById('btnUpload').disabled = false;
+                document.getElementById('btnUpload').innerHTML = '<i data-lucide="cloud-upload" class="w-5 h-5 mr-2"></i> Subir otra carpeta';
+                lucide.createIcons();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
